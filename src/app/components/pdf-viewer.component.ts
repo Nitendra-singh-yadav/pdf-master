@@ -9,14 +9,14 @@ import { PdfEngineService } from '../services/pdf-engine.service';
 import { HistorySnapshotService } from '../services/history-snapshot.service';
 import { LazyLoadingService } from '../services/lazy-loading.service';
 import { WebWorkerService } from '../services/web-worker.service';
+import { PdfPreviewDialogService } from '../services/pdf-preview-dialog.service';
 import { PdfPreviewGridComponent, PageSelectionEvent, PageOperation } from './pdf-preview-grid.component';
 import { PageEditorComponent } from './page-editor.component';
-import { PdfPreviewModalComponent } from './pdf-preview-modal.component';
 
 @Component({
   selector: 'app-pdf-viewer',
   standalone: true,
-  imports: [CommonModule, FormsModule, PdfPreviewGridComponent, PageEditorComponent, PdfPreviewModalComponent],
+  imports: [CommonModule, FormsModule, PdfPreviewGridComponent, PageEditorComponent],
   template: `
     <div class="pdf-viewer h-screen flex flex-col bg-gray-50">
       <!-- Main Toolbar -->
@@ -70,7 +70,7 @@ import { PdfPreviewModalComponent } from './pdf-preview-modal.component';
               </button>
               <button
                 *ngIf="document"
-                (click)="showFullscreenPreview()"
+                (click)="openPreview()"
                 class="px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors"
                 title="Full-screen PDF Preview"
               >
@@ -413,13 +413,6 @@ import { PdfPreviewModalComponent } from './pdf-preview-modal.component';
         </div>
       </div>
 
-      <!-- PDF Preview Modal -->
-      <app-pdf-preview-modal
-        [isVisible]="showPreviewModal"
-        [file]="previewFile"
-        (closed)="closePreview()"
-        (error)="onPreviewError($event)"
-      ></app-pdf-preview-modal>
 
       <!-- Hidden file input -->
       <input
@@ -468,8 +461,6 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   showWatermarkDialog = false;
   showSplitDialog = false;
   showExportMenu = false;
-  showPreviewModal = false;
-  previewFile: File | null = null;
 
   // History state
   canUndo = false;
@@ -499,7 +490,8 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     private pdfEngine: PdfEngineService,
     private historyService: HistorySnapshotService,
     private lazyLoading: LazyLoadingService,
-    private webWorkerService: WebWorkerService
+    private webWorkerService: WebWorkerService,
+    private previewDialogService: PdfPreviewDialogService
   ) {}
 
   ngOnInit(): void {
@@ -915,22 +907,35 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Preview methods
-  showFullscreenPreview(): void {
-    if (!this.document || !this.document.originalFile) return;
 
-    this.previewFile = this.document.originalFile;
-    this.showPreviewModal = true;
-  }
+  // Preview functionality
+  async openPreview(): Promise<void> {
+    if (!this.document) {
+      console.warn('No document available for preview');
+      return;
+    }
 
-  closePreview(): void {
-    this.showPreviewModal = false;
-    this.previewFile = null;
-  }
+    try {
+      // Create a blob from the current version (with all modifications)
+      const currentVersionBlob = new Blob([this.document.currentVersion], { type: 'application/pdf' });
+      const currentVersionFile = new File([currentVersionBlob], this.document.name, { type: 'application/pdf' });
 
-  onPreviewError(error: string): void {
-    console.error('Preview error:', error);
-    alert(`Preview error: ${error}`);
+      this.previewDialogService.openPreview({
+        file: currentVersionFile,
+        title: this.document.name,
+        allowDownload: true,
+        allowPrint: true,
+        allowShare: true
+      }).subscribe(result => {
+        if (result) {
+          console.log('Preview dialog closed with result:', result);
+          // Handle the result if needed (e.g., track user actions)
+        }
+      });
+    } catch (error) {
+      console.error('Error creating preview file:', error);
+      alert('Failed to open preview. Please try again.');
+    }
   }
 
   // UI helpers

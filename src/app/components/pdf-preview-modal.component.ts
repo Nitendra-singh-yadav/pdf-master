@@ -171,11 +171,11 @@ import { PdfUtilsService } from '../services/pdf-utils.service';
           </div>
 
           <!-- Error State -->
-          <div *ngIf="error" class="flex items-center justify-center h-full">
+          <div *ngIf="errorMessage" class="flex items-center justify-center h-full">
             <div class="text-center">
               <div class="text-6xl mb-4">⚠️</div>
               <p class="text-gray-600 text-lg mb-2">Failed to load PDF preview</p>
-              <p class="text-gray-500 text-sm">{{error}}</p>
+              <p class="text-gray-500 text-sm">{{errorMessage}}</p>
               <button
                 (click)="retryPreview()"
                 class="mt-4 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
@@ -320,10 +320,6 @@ export class PdfPreviewModalComponent implements OnInit, OnDestroy {
   // Getters
   get fileName(): string {
     return this.file?.name || '';
-  }
-
-  get error(): string | null {
-    return this.errorMessage;
   }
 
   // Public methods
