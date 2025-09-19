@@ -18,7 +18,70 @@ import { PdfPreviewModalComponent } from '../pdf-preview-modal.component';
       <!-- Header -->
       <header class="bg-white border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="flex items-center justify-between h-16">
+          <!-- Mobile Layout -->
+          <div class="md:hidden">
+            <div class="flex items-center justify-between h-14">
+              <div class="flex items-center space-x-3 flex-1 min-w-0">
+                <button
+                  routerLink="/projects"
+                  class="p-1 text-gray-500 hover:text-gray-700 transition-colors flex-shrink-0"
+                  title="Back to projects"
+                >
+                  ←
+                </button>
+                <div class="flex items-center min-w-0 flex-1">
+                  <div
+                    class="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold mr-2 flex-shrink-0"
+                    [style.background-color]="project.color || '#3B82F6'"
+                  >
+                    <span class="text-sm">{{project.templateType?.icon || '📄'}}</span>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <h1 class="text-base font-bold text-gray-900 truncate">{{project.name}}</h1>
+                    <p class="text-xs text-gray-500 truncate">{{project.documentCount}} docs • {{formatSize(project.totalSize)}}</p>
+                  </div>
+                </div>
+              </div>
+              <button
+                (click)="showMobileActions = !showMobileActions"
+                class="p-2 text-gray-500 hover:text-gray-700 transition-colors flex-shrink-0"
+                title="Actions"
+              >
+                ⋮
+              </button>
+            </div>
+
+            <!-- Mobile Actions Dropdown -->
+            <div *ngIf="showMobileActions" class="border-t border-gray-200 bg-gray-50 p-3">
+              <div class="grid grid-cols-2 gap-2">
+                <button
+                  (click)="startScanning(); showMobileActions = false"
+                  class="p-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  <span class="flex items-center justify-center">
+                    <span class="mr-1">📷</span> Scan
+                  </span>
+                </button>
+                <button
+                  (click)="fileInput.click(); showMobileActions = false"
+                  class="p-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors text-sm"
+                >
+                  <span class="flex items-center justify-center">
+                    <span class="mr-1">📄</span> Upload
+                  </span>
+                </button>
+              </div>
+              <button
+                (click)="showProjectSettings = true; showMobileActions = false"
+                class="w-full mt-2 p-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+              >
+                ⚙️ Project Settings
+              </button>
+            </div>
+          </div>
+
+          <!-- Desktop Layout -->
+          <div class="hidden md:flex items-center justify-between h-16">
             <div class="flex items-center space-x-4">
               <button
                 routerLink="/projects"
@@ -62,16 +125,6 @@ import { PdfPreviewModalComponent } from '../pdf-preview-modal.component';
                 </span>
               </button>
 
-              <!-- Hidden file input -->
-              <input
-                #fileInput
-                type="file"
-                multiple
-                accept=".pdf,.jpg,.jpeg,.png"
-                (change)="onFileSelect($event)"
-                class="hidden"
-              >
-
               <!-- Project Actions -->
               <button
                 (click)="showProjectSettings = true"
@@ -82,12 +135,22 @@ import { PdfPreviewModalComponent } from '../pdf-preview-modal.component';
               </button>
             </div>
           </div>
+
+          <!-- Hidden file input -->
+          <input
+            #fileInput
+            type="file"
+            multiple
+            accept=".pdf,.jpg,.jpeg,.png"
+            (change)="onFileSelect($event)"
+            class="hidden"
+          >
         </div>
       </header>
 
-      <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
         <!-- Quick Actions -->
-        <div class="mb-8">
+        <div class="mb-6 md:mb-8 hidden md:block">
           <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -132,16 +195,17 @@ import { PdfPreviewModalComponent } from '../pdf-preview-modal.component';
         <div class="bg-white rounded-lg shadow-sm border border-gray-200">
           <!-- Tab Navigation -->
           <div class="border-b border-gray-200">
-            <nav class="flex space-x-8 px-6" aria-label="Tabs">
+            <nav class="flex space-x-4 md:space-x-8 px-4 md:px-6" aria-label="Tabs">
               <button
                 (click)="activeTab = 'documents'"
                 [class.border-blue-500]="activeTab === 'documents'"
                 [class.text-blue-600]="activeTab === 'documents'"
                 [class.border-transparent]="activeTab !== 'documents'"
                 [class.text-gray-500]="activeTab !== 'documents'"
-                class="py-4 px-1 border-b-2 font-medium text-sm hover:text-gray-700 hover:border-gray-300 transition-colors"
+                class="py-3 md:py-4 px-1 border-b-2 font-medium text-sm hover:text-gray-700 hover:border-gray-300 transition-colors"
               >
-                Documents ({{documents.length}})
+                <span class="hidden sm:inline">Documents ({{documents.length}})</span>
+                <span class="sm:hidden">Docs ({{documents.length}})</span>
               </button>
               <button
                 (click)="activeTab = 'scans'"
@@ -149,15 +213,16 @@ import { PdfPreviewModalComponent } from '../pdf-preview-modal.component';
                 [class.text-blue-600]="activeTab === 'scans'"
                 [class.border-transparent]="activeTab !== 'scans'"
                 [class.text-gray-500]="activeTab !== 'scans'"
-                class="py-4 px-1 border-b-2 font-medium text-sm hover:text-gray-700 hover:border-gray-300 transition-colors"
+                class="py-3 md:py-4 px-1 border-b-2 font-medium text-sm hover:text-gray-700 hover:border-gray-300 transition-colors"
               >
-                Scans ({{scans.length}})
+                <span class="hidden sm:inline">Scans ({{scans.length}})</span>
+                <span class="sm:hidden">Scans ({{scans.length}})</span>
               </button>
             </nav>
           </div>
 
           <!-- Documents Tab Content -->
-          <div *ngIf="activeTab === 'documents'" class="p-6">
+          <div *ngIf="activeTab === 'documents'" class="p-4 md:p-6">
             <div *ngIf="documents.length === 0" class="text-center py-12">
               <div class="text-6xl mb-4">📄</div>
               <h3 class="text-lg font-medium text-gray-900 mb-2">No documents yet</h3>
@@ -178,34 +243,36 @@ import { PdfPreviewModalComponent } from '../pdf-preview-modal.component';
               </div>
             </div>
 
-            <div *ngIf="documents.length > 0" class="grid gap-4">
+            <div *ngIf="documents.length > 0" class="grid gap-3 md:gap-4">
               <div
                 *ngFor="let doc of documents"
-                class="flex items-center p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                class="flex items-center p-3 md:p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
               >
                 <div class="flex-shrink-0">
-                  <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                    <span class="text-2xl">📄</span>
+                  <div class="w-10 h-10 md:w-12 md:h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                    <span class="text-lg md:text-2xl">📄</span>
                   </div>
                 </div>
-                <div class="ml-4 flex-1">
-                  <h3 class="text-lg font-medium text-gray-900">{{doc.name}}</h3>
-                  <p class="text-sm text-gray-500">
+                <div class="ml-3 md:ml-4 flex-1 min-w-0">
+                  <h3 class="text-base md:text-lg font-medium text-gray-900 truncate">{{doc.name}}</h3>
+                  <p class="text-xs md:text-sm text-gray-500 truncate">
                     {{formatDate(doc.createdAt)}} • {{formatSize(doc.fileSize)}} • {{doc.pageCount}} pages
                   </p>
                 </div>
-                <div class="flex items-center space-x-2">
+                <div class="flex items-center space-x-1 md:space-x-2 flex-shrink-0">
                   <button
                     (click)="previewDocument(doc)"
-                    class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                    class="px-2 md:px-3 py-1 text-xs md:text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
                   >
-                    👁️ Preview
+                    <span class="hidden sm:inline">👁️ Preview</span>
+                    <span class="sm:hidden">👁️</span>
                   </button>
                   <button
                     (click)="downloadDocument(doc)"
-                    class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+                    class="px-2 md:px-3 py-1 text-xs md:text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
                   >
-                    ⬇️ Download
+                    <span class="hidden sm:inline">⬇️ Download</span>
+                    <span class="sm:hidden">⬇️</span>
                   </button>
                   <button
                     (click)="showDocumentMenu(doc, $event)"
@@ -219,7 +286,7 @@ import { PdfPreviewModalComponent } from '../pdf-preview-modal.component';
           </div>
 
           <!-- Scans Tab Content -->
-          <div *ngIf="activeTab === 'scans'" class="p-6">
+          <div *ngIf="activeTab === 'scans'" class="p-4 md:p-6">
             <div *ngIf="scans.length === 0" class="text-center py-12">
               <div class="text-6xl mb-4">📷</div>
               <h3 class="text-lg font-medium text-gray-900 mb-2">No scans yet</h3>
@@ -232,7 +299,7 @@ import { PdfPreviewModalComponent } from '../pdf-preview-modal.component';
               </button>
             </div>
 
-            <div *ngIf="scans.length > 0" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div *ngIf="scans.length > 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
               <div
                 *ngFor="let scan of scans"
                 class="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
@@ -242,11 +309,11 @@ import { PdfPreviewModalComponent } from '../pdf-preview-modal.component';
                   <img
                     [src]="scan.processedImage || scan.imageData"
                     [alt]="scan.name"
-                    class="w-full h-32 object-cover"
+                    class="w-full h-24 md:h-32 object-cover"
                   >
                 </div>
-                <div class="p-3">
-                  <h3 class="text-sm font-medium text-gray-900 truncate">{{scan.name}}</h3>
+                <div class="p-2 md:p-3">
+                  <h3 class="text-xs md:text-sm font-medium text-gray-900 truncate">{{scan.name}}</h3>
                   <p class="text-xs text-gray-500">{{formatDate(scan.createdAt)}}</p>
                 </div>
               </div>
@@ -262,10 +329,10 @@ import { PdfPreviewModalComponent } from '../pdf-preview-modal.component';
         (click)="closeProjectSettings()"
       >
         <div
-          class="bg-white rounded-lg p-6 max-w-md w-full mx-4"
+          class="bg-white rounded-lg p-4 md:p-6 max-w-md w-full mx-4"
           (click)="$event.stopPropagation()"
         >
-          <h2 class="text-xl font-bold mb-4">Project Settings</h2>
+          <h2 class="text-lg md:text-xl font-bold mb-4">Project Settings</h2>
 
           <div class="space-y-4">
             <div>
@@ -286,23 +353,23 @@ import { PdfPreviewModalComponent } from '../pdf-preview-modal.component';
               ></textarea>
             </div>
 
-            <div class="flex items-center justify-between pt-4 border-t">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-4 border-t space-y-3 sm:space-y-0">
               <button
                 (click)="deleteProject()"
-                class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                class="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors order-last sm:order-first"
               >
                 Delete Project
               </button>
-              <div class="flex space-x-3">
+              <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                 <button
                   (click)="closeProjectSettings()"
-                  class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  class="w-full sm:w-auto px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   (click)="saveProjectSettings()"
-                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Save Changes
                 </button>
@@ -347,6 +414,7 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
   showProjectSettings = false;
   showPreviewModal = false;
   previewFile: File | null = null;
+  showMobileActions = false;
 
   editingProject = {
     name: '',

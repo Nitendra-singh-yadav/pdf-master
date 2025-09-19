@@ -36,84 +36,167 @@ export interface PdfPreviewDialogData {
     <div class="pdf-preview-dialog h-full flex flex-col">
       <!-- Header Toolbar -->
       <mat-toolbar color="primary" class="flex-shrink-0">
-        <span class="flex-1 truncate">{{ data.title }}</span>
+        <!-- Mobile Layout -->
+        <div class="flex md:hidden items-center justify-between w-full">
+          <span class="truncate text-sm max-w-[50%]">{{ data.title }}</span>
 
-        <!-- Navigation Controls -->
-        <div class="flex items-center space-x-2 mx-4" *ngIf="previewPages.length > 1">
-          <button mat-icon-button
-                  (click)="previousPage()"
-                  [disabled]="currentPageIndex === 0"
-                  title="Previous Page">
-            <mat-icon>chevron_left</mat-icon>
-          </button>
+          <div class="flex items-center space-x-1">
+            <!-- Navigation for mobile -->
+            <div class="flex items-center space-x-1" *ngIf="previewPages.length > 1">
+              <button mat-icon-button
+                      (click)="previousPage()"
+                      [disabled]="currentPageIndex === 0"
+                      size="small">
+                <mat-icon>chevron_left</mat-icon>
+              </button>
+              <span class="text-xs">{{ currentPageIndex + 1 }}/{{ previewPages.length }}</span>
+              <button mat-icon-button
+                      (click)="nextPage()"
+                      [disabled]="currentPageIndex === previewPages.length - 1"
+                      size="small">
+                <mat-icon>chevron_right</mat-icon>
+              </button>
+            </div>
 
-          <span class="text-sm whitespace-nowrap">
-            Page {{ currentPageIndex + 1 }} of {{ previewPages.length }}
-          </span>
+            <!-- Mobile actions -->
+            <button mat-icon-button (click)="showMobileActions = !showMobileActions" size="small">
+              <mat-icon>more_vert</mat-icon>
+            </button>
 
-          <button mat-icon-button
-                  (click)="nextPage()"
-                  [disabled]="currentPageIndex === previewPages.length - 1"
-                  title="Next Page">
-            <mat-icon>chevron_right</mat-icon>
+            <button mat-icon-button (click)="closeDialog()" size="small">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- Desktop Layout -->
+        <div class="hidden md:flex items-center justify-between w-full">
+          <span class="flex-1 truncate">{{ data.title }}</span>
+
+          <!-- Navigation Controls -->
+          <div class="flex items-center space-x-2 mx-4" *ngIf="previewPages.length > 1">
+            <button mat-icon-button
+                    (click)="previousPage()"
+                    [disabled]="currentPageIndex === 0"
+                    title="Previous Page">
+              <mat-icon>chevron_left</mat-icon>
+            </button>
+
+            <span class="text-sm whitespace-nowrap">
+              Page {{ currentPageIndex + 1 }} of {{ previewPages.length }}
+            </span>
+
+            <button mat-icon-button
+                    (click)="nextPage()"
+                    [disabled]="currentPageIndex === previewPages.length - 1"
+                    title="Next Page">
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+
+          <!-- Zoom Controls -->
+          <div class="flex items-center space-x-2 mx-4">
+            <button mat-icon-button
+                    (click)="zoomOut()"
+                    [disabled]="zoomLevel <= 0.25"
+                    title="Zoom Out">
+              <mat-icon>zoom_out</mat-icon>
+            </button>
+
+            <span class="text-sm w-12 text-center">{{ (zoomLevel * 100).toFixed(0) }}%</span>
+
+            <button mat-icon-button
+                    (click)="zoomIn()"
+                    [disabled]="zoomLevel >= 3"
+                    title="Zoom In">
+              <mat-icon>zoom_in</mat-icon>
+            </button>
+
+            <button mat-icon-button
+                    (click)="resetZoom()"
+                    title="Fit to Screen">
+              <mat-icon>fit_screen</mat-icon>
+            </button>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex items-center space-x-1">
+            <button mat-icon-button
+                    *ngIf="data.allowShare"
+                    (click)="shareDocument()"
+                    title="Share">
+              <mat-icon>share</mat-icon>
+            </button>
+
+            <button mat-icon-button
+                    *ngIf="data.allowDownload"
+                    (click)="downloadDocument()"
+                    title="Download">
+              <mat-icon>download</mat-icon>
+            </button>
+
+            <button mat-icon-button
+                    *ngIf="data.allowPrint"
+                    (click)="printDocument()"
+                    title="Print">
+              <mat-icon>print</mat-icon>
+            </button>
+
+            <button mat-icon-button
+                    (click)="closeDialog()"
+                    title="Close">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        </div>
+      </mat-toolbar>
+
+      <!-- Mobile Actions Dropdown -->
+      <div *ngIf="showMobileActions" class="md:hidden bg-white border-b border-gray-200 p-2">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium">Controls</span>
+          <button (click)="showMobileActions = false" class="text-gray-500">
+            <mat-icon>close</mat-icon>
           </button>
         </div>
 
-        <!-- Zoom Controls -->
-        <div class="flex items-center space-x-2 mx-4">
+        <!-- Zoom controls -->
+        <div class="flex items-center justify-center space-x-2 mb-3">
           <button mat-icon-button
                   (click)="zoomOut()"
-                  [disabled]="zoomLevel <= 0.25"
-                  title="Zoom Out">
+                  [disabled]="zoomLevel <= 0.25">
             <mat-icon>zoom_out</mat-icon>
           </button>
-
-          <span class="text-sm w-12 text-center">{{ (zoomLevel * 100).toFixed(0) }}%</span>
-
+          <span class="text-sm font-medium">{{ (zoomLevel * 100).toFixed(0) }}%</span>
           <button mat-icon-button
                   (click)="zoomIn()"
-                  [disabled]="zoomLevel >= 3"
-                  title="Zoom In">
+                  [disabled]="zoomLevel >= 3">
             <mat-icon>zoom_in</mat-icon>
           </button>
-
-          <button mat-icon-button
-                  (click)="resetZoom()"
-                  title="Fit to Screen">
+          <button mat-icon-button (click)="resetZoom()">
             <mat-icon>fit_screen</mat-icon>
           </button>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex items-center space-x-1">
+        <!-- Action buttons -->
+        <div class="flex items-center justify-center space-x-2">
           <button mat-icon-button
                   *ngIf="data.allowShare"
-                  (click)="shareDocument()"
-                  title="Share">
+                  (click)="shareDocument(); showMobileActions = false">
             <mat-icon>share</mat-icon>
           </button>
-
           <button mat-icon-button
                   *ngIf="data.allowDownload"
-                  (click)="downloadDocument()"
-                  title="Download">
+                  (click)="downloadDocument(); showMobileActions = false">
             <mat-icon>download</mat-icon>
           </button>
-
           <button mat-icon-button
                   *ngIf="data.allowPrint"
-                  (click)="printDocument()"
-                  title="Print">
+                  (click)="printDocument(); showMobileActions = false">
             <mat-icon>print</mat-icon>
           </button>
-
-          <button mat-icon-button
-                  (click)="closeDialog()"
-                  title="Close">
-            <mat-icon>close</mat-icon>
-          </button>
         </div>
-      </mat-toolbar>
+      </div>
 
       <!-- PDF Content Area -->
       <div class="flex-1 overflow-auto bg-gray-100 relative"
@@ -224,6 +307,9 @@ export class PdfPreviewDialogComponent implements OnInit, OnDestroy {
   dragStartY = 0;
   panX = 0;
   panY = 0;
+
+  // Mobile UI state
+  showMobileActions = false;
 
   private destroy$ = new Subject<void>();
 

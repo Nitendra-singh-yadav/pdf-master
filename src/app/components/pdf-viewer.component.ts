@@ -20,8 +20,102 @@ import { PageEditorComponent } from './page-editor.component';
   template: `
     <div class="pdf-viewer h-screen flex flex-col bg-gray-50">
       <!-- Main Toolbar -->
-      <div class="toolbar bg-white border-b border-gray-200 p-4">
-        <div class="flex items-center justify-between">
+      <div class="toolbar bg-white border-b border-gray-200 p-2 sm:p-4">
+        <!-- Mobile Layout -->
+        <div class="block md:hidden">
+          <!-- Top Row: Document Info -->
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center space-x-2 flex-1 min-w-0">
+              <div class="w-6 h-6 sm:w-8 sm:h-8 bg-red-100 rounded flex items-center justify-center flex-shrink-0">
+                <span class="text-sm sm:text-lg">📄</span>
+              </div>
+              <div class="min-w-0 flex-1">
+                <h1 class="text-sm sm:text-lg font-semibold text-gray-900 truncate">{{document?.name || 'PDF Document'}}</h1>
+                <p class="text-xs text-gray-500" *ngIf="document">
+                  {{document.totalPages}} pages • {{formatFileSize(document.fileSize)}}
+                </p>
+              </div>
+            </div>
+            <!-- Mobile Menu Button -->
+            <button
+              (click)="showMobileMenu = !showMobileMenu"
+              class="p-2 text-gray-500 hover:text-gray-700 transition-colors"
+              *ngIf="document"
+            >
+              <span class="text-lg">☰</span>
+            </button>
+          </div>
+
+          <!-- Mobile Primary Actions -->
+          <div class="flex items-center space-x-2 overflow-x-auto pb-2">
+            <button
+              (click)="fileInput.click()"
+              class="px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+            >
+              📁 Open PDF
+            </button>
+            <button
+              *ngIf="document"
+              (click)="openPreview()"
+              class="px-3 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors whitespace-nowrap"
+              title="Full-screen PDF Preview"
+            >
+              👁️ Preview
+            </button>
+          </div>
+
+          <!-- Mobile Menu Dropdown -->
+          <div *ngIf="showMobileMenu && document" class="mt-3 p-3 bg-gray-50 rounded-lg">
+            <div class="grid grid-cols-2 gap-2 mb-3">
+              <button
+                (click)="compressPdf(); showMobileMenu = false"
+                [disabled]="isProcessing"
+                class="px-3 py-2 text-xs bg-orange-100 text-orange-700 border border-orange-300 rounded hover:bg-orange-200 disabled:opacity-50 transition-colors"
+              >
+                🗜️ Compress
+              </button>
+              <button
+                (click)="showSplitDialog = true; showMobileMenu = false"
+                class="px-3 py-2 text-xs bg-yellow-100 text-yellow-700 border border-yellow-300 rounded hover:bg-yellow-200 transition-colors"
+              >
+                ✂️ Split
+              </button>
+              <button
+                (click)="showWatermarkDialog = true; showMobileMenu = false"
+                class="px-3 py-2 text-xs bg-cyan-100 text-cyan-700 border border-cyan-300 rounded hover:bg-cyan-200 transition-colors"
+              >
+                💧 Watermark
+              </button>
+              <button
+                (click)="exportAsPdf(); showMobileMenu = false"
+                class="px-3 py-2 text-xs bg-gray-100 text-gray-700 border border-gray-300 rounded hover:bg-gray-200 transition-colors"
+              >
+                📄 Export
+              </button>
+            </div>
+
+            <!-- History Controls -->
+            <div class="flex items-center justify-center space-x-2">
+              <button
+                (click)="undo(); showMobileMenu = false"
+                [disabled]="!canUndo || isProcessing"
+                class="px-3 py-2 text-xs bg-gray-100 text-gray-700 border border-gray-300 rounded hover:bg-gray-200 disabled:opacity-50 transition-colors"
+              >
+                ↶ Undo
+              </button>
+              <button
+                (click)="redo(); showMobileMenu = false"
+                [disabled]="!canRedo || isProcessing"
+                class="px-3 py-2 text-xs bg-gray-100 text-gray-700 border border-gray-300 rounded hover:bg-gray-200 disabled:opacity-50 transition-colors"
+              >
+                ↷ Redo
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Desktop Layout -->
+        <div class="hidden md:flex items-center justify-between">
           <!-- Document Info -->
           <div class="flex items-center space-x-4">
             <div class="flex items-center space-x-2">
@@ -202,11 +296,11 @@ import { PageEditorComponent } from './page-editor.component';
       </div>
 
       <!-- Empty State -->
-      <div *ngIf="!document" class="flex-1 flex items-center justify-center">
-        <div class="text-center">
-          <div class="text-6xl mb-4">📄</div>
-          <h2 class="text-2xl font-bold text-gray-900 mb-4">PDF Master Tool</h2>
-          <p class="text-gray-600 mb-8 max-w-md">
+      <div *ngIf="!document" class="flex-1 flex items-center justify-center p-4">
+        <div class="text-center max-w-md mx-auto">
+          <div class="text-4xl sm:text-6xl mb-4">📄</div>
+          <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-4">PDF Master Tool</h2>
+          <p class="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8">
             Upload PDF files to view, edit, merge, split, and perform various operations.
             All processing happens in your browser - no data is sent to servers.
           </p>
@@ -214,37 +308,37 @@ import { PageEditorComponent } from './page-editor.component';
           <div class="space-y-4">
             <button
               (click)="fileInput.click()"
-              class="px-8 py-4 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors shadow-lg"
+              class="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors shadow-lg text-sm sm:text-base"
             >
               📁 Choose PDF Files
             </button>
 
-            <div class="text-sm text-gray-500">
+            <div class="text-xs sm:text-sm text-gray-500">
               Or drag and drop PDF files anywhere on this page
             </div>
           </div>
 
           <!-- Features List -->
-          <div class="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto text-sm">
-            <div class="text-center">
-              <div class="text-2xl mb-2">📎</div>
+          <div class="mt-8 sm:mt-12 grid grid-cols-2 gap-4 sm:gap-6 text-xs sm:text-sm">
+            <div class="text-center p-3 bg-white rounded-lg shadow-sm">
+              <div class="text-xl sm:text-2xl mb-2">📎</div>
               <div class="font-medium text-gray-900">Merge PDFs</div>
-              <div class="text-gray-500">Combine multiple PDFs</div>
+              <div class="text-gray-500 text-xs sm:text-sm">Combine multiple PDFs</div>
             </div>
-            <div class="text-center">
-              <div class="text-2xl mb-2">✂️</div>
+            <div class="text-center p-3 bg-white rounded-lg shadow-sm">
+              <div class="text-xl sm:text-2xl mb-2">✂️</div>
               <div class="font-medium text-gray-900">Split & Extract</div>
-              <div class="text-gray-500">Split pages or extract selections</div>
+              <div class="text-gray-500 text-xs sm:text-sm">Split pages or extract selections</div>
             </div>
-            <div class="text-center">
-              <div class="text-2xl mb-2">🔄</div>
+            <div class="text-center p-3 bg-white rounded-lg shadow-sm">
+              <div class="text-xl sm:text-2xl mb-2">🔄</div>
               <div class="font-medium text-gray-900">Rotate & Reorder</div>
-              <div class="text-gray-500">Drag to reorder pages</div>
+              <div class="text-gray-500 text-xs sm:text-sm">Drag to reorder pages</div>
             </div>
-            <div class="text-center">
-              <div class="text-2xl mb-2">🗜️</div>
+            <div class="text-center p-3 bg-white rounded-lg shadow-sm">
+              <div class="text-xl sm:text-2xl mb-2">🗜️</div>
               <div class="font-medium text-gray-900">Compress</div>
-              <div class="text-gray-500">Reduce file size</div>
+              <div class="text-gray-500 text-xs sm:text-sm">Reduce file size</div>
             </div>
           </div>
         </div>
@@ -253,11 +347,11 @@ import { PageEditorComponent } from './page-editor.component';
       <!-- Watermark Dialog -->
       <div
         *ngIf="showWatermarkDialog"
-        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
         (click)="closeWatermarkDialog()"
       >
         <div
-          class="bg-white rounded-lg p-6 max-w-md w-full mx-4"
+          class="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
           (click)="$event.stopPropagation()"
         >
           <h3 class="text-lg font-semibold mb-4">Add Watermark</h3>
@@ -322,11 +416,11 @@ import { PageEditorComponent } from './page-editor.component';
       <!-- Split Dialog -->
       <div
         *ngIf="showSplitDialog"
-        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
         (click)="closeSplitDialog()"
       >
         <div
-          class="bg-white rounded-lg p-6 max-w-lg w-full mx-4"
+          class="bg-white rounded-lg p-4 sm:p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto"
           (click)="$event.stopPropagation()"
         >
           <h3 class="text-lg font-semibold mb-4">Split PDF</h3>
@@ -461,6 +555,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   showWatermarkDialog = false;
   showSplitDialog = false;
   showExportMenu = false;
+  showMobileMenu = false;
 
   // History state
   canUndo = false;

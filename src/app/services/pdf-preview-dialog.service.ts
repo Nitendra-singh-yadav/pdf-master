@@ -40,15 +40,17 @@ export class PdfPreviewDialogService {
 
     const dialogRef: MatDialogRef<PdfPreviewDialogComponent, PdfPreviewResult> =
       this.dialog.open(PdfPreviewDialogComponent, {
-        width: '95vw',
-        height: '95vh',
+        width: '100vw',
+        height: '100vh',
         maxWidth: '100vw',
         maxHeight: '100vh',
         panelClass: 'pdf-preview-dialog',
         data: dialogData,
         disableClose: false,
         autoFocus: false,
-        restoreFocus: true
+        restoreFocus: true,
+        hasBackdrop: true,
+        position: { top: '0', left: '0' }
       });
 
     return dialogRef.afterClosed();

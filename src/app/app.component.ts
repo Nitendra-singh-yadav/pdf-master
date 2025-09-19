@@ -14,14 +14,14 @@ import { ProjectService } from './services/project.service';
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex justify-between items-center h-16">
             <!-- Logo and Navigation -->
-            <div class="flex items-center space-x-8">
-              <div class="flex items-center">
-                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+            <div class="flex items-center space-x-4 md:space-x-8 flex-1 min-w-0">
+              <div class="flex items-center min-w-0 flex-1">
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-2 md:mr-3 flex-shrink-0">
                   <span class="text-white text-lg">📄</span>
                 </div>
-                <div>
-                  <h1 class="text-xl font-bold text-gray-900">PDF Master</h1>
-                  <p class="text-xs text-gray-500">Document Scanner & PDF Tools</p>
+                <div class="min-w-0">
+                  <h1 class="text-lg md:text-xl font-bold text-gray-900 truncate">PDF Master</h1>
+                  <p class="text-xs text-gray-500 hidden sm:block truncate">Document Scanner & PDF Tools</p>
                 </div>
               </div>
 
@@ -54,13 +54,23 @@ import { ProjectService } from './services/project.service';
             </div>
 
             <!-- Actions -->
-            <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
               <button
                 (click)="createProject()"
                 *ngIf="currentRoute === '/projects'"
-                class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                class="hidden sm:inline-flex px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
               >
                 + New Project
+              </button>
+
+              <!-- Mobile Create Project Button -->
+              <button
+                (click)="createProject()"
+                *ngIf="currentRoute === '/projects'"
+                class="sm:hidden p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                title="New Project"
+              >
+                +
               </button>
 
               <!-- Mobile menu button -->
@@ -68,35 +78,38 @@ import { ProjectService } from './services/project.service';
                 (click)="mobileMenuOpen = !mobileMenuOpen"
                 class="md:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors"
               >
-                ☰
+                <span class="text-lg">☰</span>
               </button>
             </div>
           </div>
 
           <!-- Mobile Navigation -->
-          <div *ngIf="mobileMenuOpen" class="md:hidden border-t border-gray-200 py-4">
-            <nav class="space-y-2">
+          <div *ngIf="mobileMenuOpen" class="md:hidden border-t border-gray-200 py-3 bg-gray-50">
+            <nav class="space-y-1">
               <button
                 (click)="navigateTo('/pdf-master')"
-                [class.text-blue-600]="currentRoute === '/pdf-master'"
+                [class.bg-blue-100]="currentRoute === '/pdf-master'"
+                [class.text-blue-700]="currentRoute === '/pdf-master'"
                 [class.font-semibold]="currentRoute === '/pdf-master'"
-                class="block w-full text-left px-3 py-2 text-gray-600 hover:text-blue-600 transition-colors"
+                class="block w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors rounded-lg mx-2"
               >
                 🎯 PDF Master
               </button>
               <button
                 (click)="navigateTo('/projects')"
-                [class.text-blue-600]="currentRoute === '/projects'"
+                [class.bg-blue-100]="currentRoute === '/projects'"
+                [class.text-blue-700]="currentRoute === '/projects'"
                 [class.font-semibold]="currentRoute === '/projects'"
-                class="block w-full text-left px-3 py-2 text-gray-600 hover:text-blue-600 transition-colors"
+                class="block w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors rounded-lg mx-2"
               >
                 📁 Projects
               </button>
               <button
                 (click)="navigateTo('/legacy-tools')"
-                [class.text-blue-600]="currentRoute === '/legacy-tools'"
+                [class.bg-blue-100]="currentRoute === '/legacy-tools'"
+                [class.text-blue-700]="currentRoute === '/legacy-tools'"
                 [class.font-semibold]="currentRoute === '/legacy-tools'"
-                class="block w-full text-left px-3 py-2 text-gray-600 hover:text-blue-600 transition-colors"
+                class="block w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors rounded-lg mx-2"
               >
                 🛠️ Legacy Tools
               </button>
@@ -113,24 +126,24 @@ import { ProjectService } from './services/project.service';
       <!-- Quick Access Floating Button (when in project views) -->
       <div
         *ngIf="showFloatingButton"
-        class="fixed bottom-6 right-6 flex flex-col space-y-3 z-40"
+        class="fixed bottom-4 right-4 md:bottom-6 md:right-6 flex flex-col space-y-2 md:space-y-3 z-40"
       >
         <!-- Scan Button -->
         <button
           (click)="startScanning()"
-          class="w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center hover:scale-110"
+          class="w-12 h-12 md:w-14 md:h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all duration-200 flex items-center justify-center hover:scale-110"
           title="Scan Document"
         >
-          <span class="text-xl">📷</span>
+          <span class="text-lg md:text-xl">📷</span>
         </button>
 
         <!-- Add Files Button -->
         <button
           (click)="uploadFiles()"
-          class="w-12 h-12 bg-green-600 text-white rounded-full shadow-lg hover:bg-green-700 transition-all duration-200 flex items-center justify-center hover:scale-110"
+          class="w-10 h-10 md:w-12 md:h-12 bg-green-600 text-white rounded-full shadow-lg hover:bg-green-700 transition-all duration-200 flex items-center justify-center hover:scale-110"
           title="Upload Files"
         >
-          <span class="text-lg">📄</span>
+          <span class="text-base md:text-lg">📄</span>
         </button>
       </div>
 
