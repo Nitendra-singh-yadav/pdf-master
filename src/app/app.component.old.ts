@@ -761,7 +761,7 @@ import { SnapshotService } from './services/snapshot.service';
       <footer class="bg-white border-t border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div class="text-center text-sm text-gray-500">
-            PDF Master Angular - Converted from React
+            PDF Master - Converted from React
           </div>
         </div>
       </footer>
@@ -783,7 +783,7 @@ import { SnapshotService } from './services/snapshot.service';
   `]
 })
 export class AppComponent implements OnInit, OnDestroy {
-  title = 'pdf-master-angular';
+  title = 'pdf-master';
   darkMode = false;
 
   state$: Observable<PdfState>;

@@ -11,11 +11,12 @@ import { LazyLoadingService } from '../services/lazy-loading.service';
 import { WebWorkerService } from '../services/web-worker.service';
 import { PdfPreviewGridComponent, PageSelectionEvent, PageOperation } from './pdf-preview-grid.component';
 import { PageEditorComponent } from './page-editor.component';
+import { PdfPreviewModalComponent } from './pdf-preview-modal.component';
 
 @Component({
   selector: 'app-pdf-viewer',
   standalone: true,
-  imports: [CommonModule, FormsModule, PdfPreviewGridComponent, PageEditorComponent],
+  imports: [CommonModule, FormsModule, PdfPreviewGridComponent, PageEditorComponent, PdfPreviewModalComponent],
   template: `
     <div class="pdf-viewer h-screen flex flex-col bg-gray-50">
       <!-- Main Toolbar -->
@@ -66,6 +67,14 @@ import { PageEditorComponent } from './page-editor.component';
                 class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
               >
                 📁 Open PDF
+              </button>
+              <button
+                *ngIf="document"
+                (click)="showFullscreenPreview()"
+                class="px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors"
+                title="Full-screen PDF Preview"
+              >
+                👁️ Preview
               </button>
             </div>
 
@@ -404,6 +413,14 @@ import { PageEditorComponent } from './page-editor.component';
         </div>
       </div>
 
+      <!-- PDF Preview Modal -->
+      <app-pdf-preview-modal
+        [isVisible]="showPreviewModal"
+        [file]="previewFile"
+        (closed)="closePreview()"
+        (error)="onPreviewError($event)"
+      ></app-pdf-preview-modal>
+
       <!-- Hidden file input -->
       <input
         #fileInput
@@ -451,6 +468,8 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   showWatermarkDialog = false;
   showSplitDialog = false;
   showExportMenu = false;
+  showPreviewModal = false;
+  previewFile: File | null = null;
 
   // History state
   canUndo = false;
@@ -894,6 +913,24 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       this.document.currentVersion = snapshot.documentState;
       this.updateHistoryState();
     }
+  }
+
+  // Preview methods
+  showFullscreenPreview(): void {
+    if (!this.document || !this.document.originalFile) return;
+
+    this.previewFile = this.document.originalFile;
+    this.showPreviewModal = true;
+  }
+
+  closePreview(): void {
+    this.showPreviewModal = false;
+    this.previewFile = null;
+  }
+
+  onPreviewError(error: string): void {
+    console.error('Preview error:', error);
+    alert(`Preview error: ${error}`);
   }
 
   // UI helpers

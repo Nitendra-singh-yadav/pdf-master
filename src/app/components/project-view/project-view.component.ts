@@ -7,11 +7,12 @@ import { takeUntil } from 'rxjs/operators';
 
 import { Project, Document as ProjectDocument, Scan } from '../../models/project.model';
 import { ProjectService } from '../../services/project.service';
+import { PdfPreviewModalComponent } from '../pdf-preview-modal.component';
 
 @Component({
   selector: 'app-project-view',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, PdfPreviewModalComponent],
   template: `
     <div class="min-h-screen bg-gray-50" [class.dark]="isDarkMode" *ngIf="project">
       <!-- Header -->
@@ -310,6 +311,14 @@ import { ProjectService } from '../../services/project.service';
           </div>
         </div>
       </div>
+
+      <!-- PDF Preview Modal -->
+      <app-pdf-preview-modal
+        [isVisible]="showPreviewModal"
+        [file]="previewFile"
+        (closed)="closePreview()"
+        (error)="onPreviewError($event)"
+      ></app-pdf-preview-modal>
     </div>
   `,
   styles: [`
@@ -336,6 +345,8 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
   activeTab: 'documents' | 'scans' = 'documents';
   isDarkMode = false;
   showProjectSettings = false;
+  showPreviewModal = false;
+  previewFile: File | null = null;
 
   editingProject = {
     name: '',
@@ -418,9 +429,13 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
 
       // Check if we have the file to preview
       const file = doc.processedFile || doc.originalFile;
-      if (file) {
-        // For now, navigate to PDF master - in the future we could pass the file
-        this.router.navigate(['/pdf-master']);
+      if (file && file.type === 'application/pdf') {
+        // Open the full-screen PDF preview modal
+        this.previewFile = file;
+        this.showPreviewModal = true;
+      } else if (file) {
+        // For non-PDF files, download instead
+        this.downloadDocument(doc);
       } else {
         alert('Document file not available for preview');
       }
@@ -525,5 +540,17 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
 
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
+
+  // PDF Preview Modal methods
+  closePreview(): void {
+    this.showPreviewModal = false;
+    this.previewFile = null;
+  }
+
+  onPreviewError(error: string): void {
+    console.error('Preview error:', error);
+    alert(`Preview error: ${error}`);
+    this.closePreview();
   }
 }

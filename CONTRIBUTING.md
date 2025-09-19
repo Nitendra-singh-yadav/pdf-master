@@ -1,6 +1,6 @@
-# 🤝 Contributing to PDF Master Angular
+# 🤝 Contributing to PDF Master
 
-Thank you for your interest in contributing to PDF Master Angular! We welcome contributions from developers of all skill levels. This document provides guidelines for contributing to the project.
+Thank you for your interest in contributing to PDF Master! We welcome contributions from developers of all skill levels. This document provides guidelines for contributing to the project.
 
 ## 📋 Table of Contents
 
@@ -207,7 +207,7 @@ Include:
 ```bash
 # Fork and clone the repository
 git clone https://github.com/YOUR_USERNAME/pdf-master.git
-cd pdf-master-angular
+cd pdf-master
 
 # Install dependencies
 npm install
@@ -249,7 +249,7 @@ ng e2e
 ### General Guidelines
 
 - **TypeScript**: Use strict typing, avoid `any`
-- **Angular**: Follow Angular style guide and best practices
+- **Angular**: Follow style guide and best practices
 - **RxJS**: Use reactive patterns appropriately
 - **Testing**: Write unit and integration tests
 - **Performance**: Consider performance implications
@@ -351,18 +351,18 @@ Contributors are recognized through:
 ## 📞 Contact
 
 - **Project Maintainer**: [Nitendra Singh Yadav](https://github.com/Nitendra-singh-yadav)
-- **Project Repository**: [PDF Master Angular](https://github.com/Nitendra-singh-yadav/pdf-master)
+- **Project Repository**: [PDF Master](https://github.com/Nitendra-singh-yadav/pdf-master)
 - **Issues**: [GitHub Issues](https://github.com/Nitendra-singh-yadav/pdf-master/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/Nitendra-singh-yadav/pdf-master/discussions)
 
 ## 🙏 Thank You
 
-Your contributions make PDF Master Angular better for everyone. Whether you fix a typo, add a feature, or help other users, every contribution matters!
+Your contributions make PDF Master better for everyone. Whether you fix a typo, add a feature, or help other users, every contribution matters!
 
 ---
 
 <div align="center">
   <strong>Happy Contributing! 🎉</strong>
   <br>
-  <sub>Together, we make PDF Master Angular amazing</sub>
+  <sub>Together, we make PDF Master amazing</sub>
 </div>

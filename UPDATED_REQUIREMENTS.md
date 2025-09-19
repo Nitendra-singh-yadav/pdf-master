@@ -1,4 +1,4 @@
-# PDF Master Angular - Updated Requirements Analysis
+# PDF Master - Updated Requirements Analysis
 
 ## Core Application Overview
 Build a client-side PDF Master Tool combining **iLovePDF features** with **DocScanner workflow**, maintaining the project-based foundation we've established.

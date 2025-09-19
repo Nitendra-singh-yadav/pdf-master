@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is PDF Master Angular - a comprehensive PDF manipulation application built with Angular 17 that provides 30+ PDF tools including conversion, compression, merging, splitting, security features, and more. The application is converted from a React implementation and features a modern UI with Tailwind CSS.
+This is PDF Master - a comprehensive PDF manipulation application built with 17 that provides 30+ PDF tools including conversion, compression, merging, splitting, security features, and more. The application is converted from a React implementation and features a modern UI with Tailwind CSS.
 
 ## Common Development Commands
 
@@ -24,7 +24,7 @@ ng build --configuration development  # Development build
 npm run build              # Production build
 npm run watch              # Development build with watch mode
 ```
-- Production builds go to `dist/pdf-master-angular/`
+- Production builds go to `dist/pdf-master/`
 
 ### Testing
 ```bash
@@ -35,7 +35,7 @@ npm test
 - Runs unit tests via Karma and Jasmine
 - Tests run in watch mode by default
 
-### Angular CLI Commands
+### CLI Commands
 ```bash
 ng generate component component-name    # Generate new component
 ng generate service service-name        # Generate new service
@@ -68,7 +68,7 @@ interface PdfState {
 ```
 
 ### Component Architecture
-- **Standalone Components**: Uses Angular 17 standalone component architecture
+- **Standalone Components**: Uses 17 standalone component architecture
 - **Reactive Forms**: FormsModule imported for form handling
 - **Observable Patterns**: RxJS for reactive state management
 - **Service Injection**: Constructor injection for services
@@ -89,11 +89,11 @@ interface PdfState {
 - **Gradients**: Extensive use of CSS gradients for modern appearance
 
 ### Dependencies
-- **Core**: Angular 17, RxJS, Zone.js
+- **Core**: 17, RxJS, Zone.js
 - **PDF Processing**: pdf-lib, pdfjs-dist
 - **UI**: Tailwind CSS, @tailwindcss/typography, autoprefixer, postcss
-- **Animation**: framer-motion (React library - may need Angular equivalent)
-- **Icons**: @heroicons/react (React library - may need Angular equivalent)
+- **Animation**: framer-motion (React library - may need equivalent)
+- **Icons**: @heroicons/react (React library - may need equivalent)
 
 ### File Organization
 ```

@@ -1,6 +1,6 @@
-# 📄 PDF Master Angular
+# 📄 PDF Master
 
-A comprehensive PDF manipulation application built with Angular 17 that provides 30+ powerful PDF tools including conversion, compression, merging, splitting, security features, and advanced annotation capabilities.
+A comprehensive PDF manipulation application built with 17 that provides 30+ powerful PDF tools including conversion, compression, merging, splitting, security features, and advanced annotation capabilities.
 
 [![Angular](https://img.shields.io/badge/Angular-17-red.svg)](https://angular.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
@@ -64,7 +64,7 @@ A comprehensive PDF manipulation application built with Angular 17 that provides
 1. **Clone the repository**
    ```bash
    git clone https://github.com/Nitendra-singh-yadav/pdf-master.git
-   cd pdf-master-angular
+   cd pdf-master
    ```
 
 2. **Install dependencies**
@@ -86,13 +86,13 @@ A comprehensive PDF manipulation application built with Angular 17 that provides
 
 ```bash
 ng build
-# Output will be in dist/pdf-master-angular/
+# Output will be in dist/pdf-master/
 ```
 
 ## 🏗️ Architecture
 
 ### Core Technologies
-- **Frontend**: Angular 17 with standalone components
+- **Frontend**: 17 with standalone components
 - **Styling**: Tailwind CSS with responsive design
 - **PDF Processing**: pdf-lib and pdfjs-dist for client-side operations
 - **State Management**: Reactive services with RxJS observables
@@ -142,7 +142,7 @@ src/app/
 We welcome contributions from the community! Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting pull requests.
 
 ### Development Guidelines
-- Follow Angular and TypeScript best practices
+- Follow and TypeScript best practices
 - Maintain comprehensive test coverage
 - Update documentation for new features
 - Ensure responsive design compatibility
@@ -166,7 +166,7 @@ Your support helps maintain and improve PDF Master for everyone!
 
 ## 🌟 Acknowledgments
 
-- Built with ❤️ using Angular and modern web technologies
+- Built with ❤️ using and modern web technologies
 - PDF processing powered by pdf-lib and PDF.js
 - UI components styled with Tailwind CSS
 - Icons provided by the community
@@ -181,7 +181,7 @@ Your support helps maintain and improve PDF Master for everyone!
 ---
 
 <div align="center">
-  <strong>Transform your PDF workflow with PDF Master Angular</strong>
+  <strong>Transform your PDF workflow with PDF Master</strong>
   <br>
   <sub>Built by <a href="https://github.com/Nitendra-singh-yadav">Nitendra Singh Yadav</a> and contributors</sub>
 </div>

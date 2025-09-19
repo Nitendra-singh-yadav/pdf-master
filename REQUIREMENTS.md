@@ -1,10 +1,10 @@
-# PDF Master Angular - DocScanner Transformation Requirements
+# PDF Master - DocScanner Transformation Requirements
 
 ## Project Overview
-Transform the current PDF Master Angular application from an "I Love PDF" style tool collection into a comprehensive DocScanner-style application with project-based workflow, document scanning, OCR, and mobile-optimized features.
+Transform the current PDF Master application from an "I Love PDF" style tool collection into a comprehensive DocScanner-style application with project-based workflow, document scanning, OCR, and mobile-optimized features.
 
 ## Current State
-- Angular 17 application with 30+ PDF tools
+- 17 application with 30+ PDF tools
 - Basic file upload/download functionality
 - PDF manipulation features (merge, split, compress, watermark)
 - Tailwind CSS styling with dark mode
@@ -167,7 +167,7 @@ Transform the current PDF Master Angular application from an "I Love PDF" style 
 - User-friendly workflow completion in <2 minutes
 
 ## Technology Stack Updates
-- **Frontend**: Angular 17, Tailwind CSS, TypeScript
+- **Frontend**: 17, Tailwind CSS, TypeScript
 - **Camera**: MediaDevices API or @capacitor/camera
 - **Image Processing**: Canvas API, opencv.js
 - **OCR**: tesseract.js
