@@ -310,6 +310,8 @@ export class PdfPreviewModalComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     if (this.file && this.isVisible) {
       this.loadPreview();
+      // Initial fit to screen after a short delay to ensure DOM is ready
+      setTimeout(() => this.fitToScreen(), 250);
     }
   }
 
@@ -341,6 +343,9 @@ export class PdfPreviewModalComponent implements OnInit, OnDestroy {
         this.currentPagePreview = images[0];
         this.currentPageIndex = 0;
         this.pageNumberInput = 1;
+        // Reset original dimensions so they will be recalculated for fit-to-screen
+        this.originalImageWidth = 0;
+        this.originalImageHeight = 0;
       } else {
         throw new Error('No pages found in PDF');
       }
@@ -422,10 +427,24 @@ export class PdfPreviewModalComponent implements OnInit, OnDestroy {
 
   fitToScreen(): void {
     const previewContainer = document.querySelector('.pdf-preview-container') as HTMLElement;
-    if (!previewContainer || !this.originalImageWidth || !this.originalImageHeight) {
+    if (!previewContainer) {
       this.zoomLevel = 1;
       this.resetPan();
       return;
+    }
+
+    // If we don't have original dimensions yet, try to get them from the current image
+    if (!this.originalImageWidth || !this.originalImageHeight) {
+      const img = previewContainer.querySelector('img') as HTMLImageElement;
+      if (img && img.naturalWidth && img.naturalHeight) {
+        this.originalImageWidth = img.naturalWidth;
+        this.originalImageHeight = img.naturalHeight;
+      } else {
+        // Fallback: set to a reasonable default zoom for most PDFs
+        this.zoomLevel = 0.8;
+        this.resetPan();
+        return;
+      }
     }
 
     // Get container dimensions with some padding
@@ -626,8 +645,11 @@ export class PdfPreviewModalComponent implements OnInit, OnDestroy {
     this.currentPagePreview = null;
     this.currentPageIndex = 0;
     this.pageNumberInput = 1;
-    this.zoomLevel = 1;
+    // Start with fit-to-screen zoom instead of 100%
+    this.zoomLevel = 0.8; // Default reasonable zoom for most PDFs
     this.resetPan();
+    this.originalImageWidth = 0;
+    this.originalImageHeight = 0;
   }
 
   private cleanup(): void {

@@ -331,7 +331,7 @@ export class PdfUtilsService {
 
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
-      const viewport = page.getViewport({ scale: 1.5 });
+      const viewport = page.getViewport({ scale: 3.0 }); // Increased scale for better quality
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
 
@@ -389,5 +389,47 @@ export class PdfUtilsService {
       width: viewport.width,
       height: viewport.height
     };
+  }
+
+  // Enhanced canvas-based rendering method
+  async renderPageToCanvas(pdf: any, pageNumber: number, canvas: HTMLCanvasElement, scale: number = 1): Promise<void> {
+    const page = await pdf.getPage(pageNumber);
+    const viewport = page.getViewport({ scale });
+    const context = canvas.getContext('2d');
+
+    if (!context) {
+      throw new Error('Could not get canvas context');
+    }
+
+    // Set canvas dimensions
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+
+    // Enable high-quality rendering
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+
+    // Render the page
+    await page.render({
+      canvasContext: context,
+      viewport
+    }).promise;
+  }
+
+  // Optimized method for multiple page rendering
+  async renderPagesToCanvases(file: File, startPage: number = 1, endPage?: number, scale: number = 2): Promise<HTMLCanvasElement[]> {
+    const data = await file.arrayBuffer();
+    const pdf = await getDocument({ data }).promise;
+    const totalPages = pdf.numPages;
+    const lastPage = endPage || totalPages;
+    const canvases: HTMLCanvasElement[] = [];
+
+    for (let pageNum = startPage; pageNum <= Math.min(lastPage, totalPages); pageNum++) {
+      const canvas = document.createElement('canvas');
+      await this.renderPageToCanvas(pdf, pageNum, canvas, scale);
+      canvases.push(canvas);
+    }
+
+    return canvases;
   }
 }

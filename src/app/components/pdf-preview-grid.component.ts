@@ -151,8 +151,7 @@ export interface PageOperation {
             [cdkDragData]="page"
             [class.selected]="page.isSelected"
             [class.dragging]="isDragging"
-            class="page-item bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer relative"
-            [style.width.px]="thumbnailSize"
+            class="page-item bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer relative aspect-[4/5] min-h-0"
             (click)="togglePageSelection(page, $event)"
             (dblclick)="editPage(page)"
           >
@@ -173,12 +172,12 @@ export interface PageOperation {
             </div>
 
             <!-- Page Thumbnail -->
-            <div class="relative">
+            <div class="relative flex items-center justify-center h-full p-2">
               <img
                 *ngIf="getPageThumbnail(page)"
                 [src]="getPageThumbnail(page)"
                 [alt]="'Page ' + page.pageNumber"
-                class="w-full h-auto rounded-lg"
+                class="max-w-full max-h-full object-contain rounded-lg"
                 [class.opacity-75]="!page.isVisible"
                 (load)="onThumbnailLoad(page)"
                 (error)="onThumbnailError(page)"
@@ -302,6 +301,7 @@ export class PdfPreviewGridComponent implements OnInit, OnDestroy {
   @Input() enableDragDrop: boolean = true;
   @Input() selectionMode: 'single' | 'multiple' = 'multiple';
 
+
   @Output() pageSelectionChange = new EventEmitter<PageSelectionEvent>();
   @Output() pageOperation = new EventEmitter<PageOperation>();
   @Output() pageEdit = new EventEmitter<PdfPage>();
@@ -311,7 +311,7 @@ export class PdfPreviewGridComponent implements OnInit, OnDestroy {
 
   // View state
   viewMode: 'grid' | 'list' = 'grid';
-  thumbnailSize = 200;
+  thumbnailSize = 200; // Will be adjusted for fit-to-screen
   isLoading = false;
   loadingMessage = '';
   loadingProgress = 0;
@@ -360,16 +360,16 @@ export class PdfPreviewGridComponent implements OnInit, OnDestroy {
         this.unloadDistantThumbnails();
       });
 
-    // Handle thumbnail size changes with debouncing
+    // Subscribe to thumbnail size changes for slider functionality
     this.thumbnailSizeSubject
       .pipe(
+        takeUntil(this.destroy$),
         debounceTime(300),
-        distinctUntilChanged(),
-        takeUntil(this.destroy$)
+        distinctUntilChanged()
       )
       .subscribe(size => {
-        this.updateGridLayout();
-        this.generateVisibleThumbnails();
+        // Only regenerate thumbnails, don't change the size automatically
+        this.regenerateAllThumbnails();
       });
 
     // Generate initial thumbnails
@@ -377,21 +377,83 @@ export class PdfPreviewGridComponent implements OnInit, OnDestroy {
 
     // Initialize viewport tracking after container is ready
     setTimeout(() => this.initializeViewportTracking(), 100);
+
+    // Add window resize listener for responsive thumbnail sizing
+    window.addEventListener('resize', () => this.calculateOptimalThumbnailSize());
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
     this.lazyLoading.destroy();
+
+    // Remove window resize listener
+    window.removeEventListener('resize', () => this.calculateOptimalThumbnailSize());
   }
 
   // Grid layout calculations
   get gridTemplateColumns(): string {
-    const containerWidth = this.containerRef?.nativeElement?.clientWidth || 1000;
-    const itemWidth = this.thumbnailSize + 32; // Include padding/margin
-    const columns = Math.floor(containerWidth / itemWidth) || 1;
+    // Use responsive columns based on screen size
+    const screenWidth = window.innerWidth;
+    let columns: number;
+
+    if (screenWidth < 640) {
+      columns = 2; // Mobile: 2 columns
+    } else if (screenWidth < 1024) {
+      columns = 3; // Tablet: 3 columns
+    } else {
+      columns = 4; // Desktop: 4 columns
+    }
+
     return `repeat(${columns}, 1fr)`;
   }
+
+  // Get thumbnail height based on typical PDF aspect ratio
+  getThumbnailHeight(): number {
+    // Use a standard PDF aspect ratio (approximately A4: 8.5:11 or 0.77:1)
+    // This ensures thumbnails have consistent height and show full page content
+    return Math.round(this.thumbnailSize * 1.3); // Height is 1.3x width for typical PDF ratio
+  }
+
+  // Calculate optimal thumbnail size for current screen
+  calculateOptimalThumbnailSize(): void {
+    // Use a timeout to ensure DOM is ready
+    setTimeout(() => {
+      const containerWidth = window.innerWidth - 100; // Account for padding/margins
+      const containerHeight = window.innerHeight - 200; // Account for header/footer
+
+      let calculatedWidth: number;
+      let calculatedHeight: number;
+
+      // For mobile screens, use smaller thumbnails
+      if (window.innerWidth < 768) {
+        calculatedWidth = Math.min(containerWidth / 2 - 20, 180); // 2 columns on mobile
+      } else {
+        // For desktop, calculate based on showing 3-4 thumbnails per row
+        const targetColumns = window.innerWidth < 1024 ? 3 : 4;
+        calculatedWidth = Math.min((containerWidth / targetColumns) - 32, 300);
+      }
+
+      // Calculate corresponding height using PDF aspect ratio
+      calculatedHeight = calculatedWidth * 1.3;
+
+      // Check if height fits in container, if not, adjust based on height constraint
+      const maxRowsVisible = Math.floor(containerHeight / (calculatedHeight + 40)); // 40px for margins
+      if (maxRowsVisible < 2) {
+        // If less than 2 rows can fit, scale down to fit at least 2 rows
+        const maxHeightPerRow = (containerHeight - 80) / 2; // Leave space for 2 rows
+        calculatedHeight = maxHeightPerRow;
+        calculatedWidth = calculatedHeight / 1.3;
+      }
+
+      // Ensure minimum and maximum sizes
+      this.thumbnailSize = Math.max(50, Math.min(calculatedWidth, 400));
+
+      // Update the thumbnail size subject to trigger regeneration
+      this.thumbnailSizeSubject.next(this.thumbnailSize);
+    }, 100);
+  }
+
 
   // Selection state getters
   get selectedPages(): PdfPage[] {
@@ -452,6 +514,33 @@ export class PdfPreviewGridComponent implements OnInit, OnDestroy {
 
   onThumbnailSizeChange(): void {
     this.thumbnailSizeSubject.next(this.thumbnailSize);
+  }
+
+  // Zoom methods
+  zoomIn(): void {
+    const maxSize = 300; // Fixed max size
+    if (this.thumbnailSize < maxSize) {
+      this.thumbnailSize = Math.min(this.thumbnailSize + 25, maxSize);
+      this.onThumbnailSizeChange();
+    }
+  }
+
+  zoomOut(): void {
+    const minSize = 100; // Fixed min size
+    if (this.thumbnailSize > minSize) {
+      this.thumbnailSize = Math.max(this.thumbnailSize - 25, minSize);
+      this.onThumbnailSizeChange();
+    }
+  }
+
+  resetZoom(): void {
+    // Reset to default size
+    this.thumbnailSize = 200;
+    this.onThumbnailSizeChange();
+  }
+
+  getZoomPercentage(): number {
+    return Math.round((this.thumbnailSize / 200) * 100);
   }
 
   onThumbnailLoad(page: PdfPage): void {
@@ -632,10 +721,11 @@ export class PdfPreviewGridComponent implements OnInit, OnDestroy {
     try {
       this.loadingMessage = 'Generating thumbnails...';
 
-      // For large documents, only generate thumbnails for visible pages initially
-      if (this.document.totalPages > 50) {
-        // Load first few pages immediately
-        const initialPageCount = Math.min(10, this.document.totalPages);
+      // Generate all thumbnails at the correct size for better user experience
+      // Only use lazy loading for very large documents (>100 pages)
+      if (this.document.totalPages > 100) {
+        // Load first batch immediately for very large documents
+        const initialPageCount = Math.min(20, this.document.totalPages);
 
         const updatedPages = await this.pdfEngine.generateThumbnails(
           this.document,
@@ -661,7 +751,7 @@ export class PdfPreviewGridComponent implements OnInit, OnDestroy {
         // Load visible pages after initial load
         setTimeout(() => this.loadVisibleThumbnails(), 100);
       } else {
-        // For smaller documents, generate all thumbnails
+        // For normal documents (≤100 pages), generate all thumbnails immediately
         const updatedPages = await this.pdfEngine.generateThumbnails(
           this.document,
           {
@@ -675,10 +765,10 @@ export class PdfPreviewGridComponent implements OnInit, OnDestroy {
 
         this.document.pages = updatedPages;
 
-        // Cache all thumbnails
+        // Cache all thumbnails at high quality
         updatedPages.forEach(page => {
           if (page.thumbnail) {
-            this.lazyLoading.cacheThumbnail(page.id, page.thumbnail, 'medium');
+            this.lazyLoading.cacheThumbnail(page.id, page.thumbnail, 'high');
           }
         });
       }
@@ -704,6 +794,18 @@ export class PdfPreviewGridComponent implements OnInit, OnDestroy {
       width: this.thumbnailSize,
       startPage,
       endPage
+    });
+  }
+
+  private async regenerateAllThumbnails(): Promise<void> {
+    // Clear all existing thumbnails
+    this.document.pages.forEach(page => {
+      page.thumbnail = '';
+    });
+
+    // Regenerate all thumbnails with current size
+    await this.pdfEngine.generateThumbnails(this.document, {
+      width: this.thumbnailSize
     });
   }
 

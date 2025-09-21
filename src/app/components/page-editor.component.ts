@@ -146,7 +146,7 @@ export interface DrawingState {
           >
             −
           </button>
-          <span class="text-sm text-gray-600 min-w-[60px] text-center">{{(zoomLevel * 100).toFixed(0)}}%</span>
+          <span class="text-sm text-gray-600 min-w-[60px] text-center">{{getZoomPercentage()}}%</span>
           <button
             (click)="zoomIn()"
             [disabled]="zoomLevel >= maxZoom"
@@ -451,8 +451,9 @@ export class PageEditorComponent implements OnInit, OnDestroy, AfterViewInit {
 
   // Zoom and pan functionality
   zoomLevel = 1;
-  minZoom = 0.25;
-  maxZoom = 3;
+  minZoom = 0.0625; // 25% of the new baseline (0.25 * 0.25 = 0.0625)
+  maxZoom = 1.25; // 500% of the new baseline (0.25 * 5 = 1.25)
+  fitToScreenZoom = 1; // This will store the calculated fit-to-screen zoom level
   panOffset = { x: 0, y: 0 };
   isPanning = false;
   lastPanPoint = { x: 0, y: 0 };
@@ -483,6 +484,10 @@ export class PageEditorComponent implements OnInit, OnDestroy, AfterViewInit {
     setTimeout(() => {
       this.initAnnotationCanvas();
       this.renderAllAnnotations();
+      // Recalculate fit-to-screen zoom after view is initialized
+      if (this.canvasWidth && this.canvasHeight) {
+        this.calculateFitToScreenZoom();
+      }
     });
   }
 
@@ -877,6 +882,9 @@ export class PageEditorComponent implements OnInit, OnDestroy, AfterViewInit {
       this.canvasWidth = img.naturalWidth || img.clientWidth;
       this.canvasHeight = img.naturalHeight || img.clientHeight;
 
+      // Calculate fit-to-screen zoom level
+      this.calculateFitToScreenZoom();
+
       // Update page dimensions for coordinate conversion
       if (!this.page.originalDimensions) {
         this.page.originalDimensions = {
@@ -979,8 +987,22 @@ export class PageEditorComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   resetZoom(): void {
-    this.zoomLevel = 1;
+    this.zoomLevel = this.fitToScreenZoom;
     this.panOffset = { x: 0, y: 0 };
+  }
+
+  getZoomPercentage(): number {
+    // Convert zoom level to percentage where fitToScreenZoom (0.25) = 100%
+    return Math.round((this.zoomLevel / this.fitToScreenZoom) * 100);
+  }
+
+  private calculateFitToScreenZoom(): void {
+    // Based on user testing, 25% of the original PDF size is the perfect fit-to-screen
+    // We'll make this our new "100%" baseline
+    this.fitToScreenZoom = 0.25;
+
+    // Set initial zoom level to fit-to-screen (which is 0.25 but will display as 100%)
+    this.zoomLevel = this.fitToScreenZoom;
   }
 
   onWheel(event: WheelEvent): void {
