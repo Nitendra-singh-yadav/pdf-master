@@ -137,7 +137,7 @@ import { PdfUtilsService } from '../services/pdf-utils.service';
         </div>
 
         <!-- Preview Content -->
-        <div class="flex-1 overflow-auto relative bg-gray-50"
+        <div class="flex-1 overflow-auto relative bg-gray-50 pdf-preview-container"
              [class.overflow-hidden]="zoomLevel > 1 && isDragging"
              #previewContainer>
           <div
@@ -156,8 +156,8 @@ import { PdfUtilsService } from '../services/pdf-utils.service';
               class="border border-gray-300 rounded-lg shadow-lg select-none max-w-full max-h-full"
               [style.transform]="getTransform()"
               [style.transition]="isDragging ? 'none' : 'transform 0.2s ease'"
+              (load)="onImageLoad($event)"
               (dragstart)="$event.preventDefault()"
-              (load)="onImageLoad()"
             >
           </div>
 
@@ -299,6 +299,8 @@ export class PdfPreviewModalComponent implements OnInit, OnDestroy {
   dragStartY = 0;
   panX = 0;
   panY = 0;
+  originalImageWidth = 0;
+  originalImageHeight = 0;
 
   // Component lifecycle
   private destroy$ = new Subject<void>();
@@ -379,6 +381,9 @@ export class PdfPreviewModalComponent implements OnInit, OnDestroy {
       this.currentPagePreview = this.previewPages[pageIndex];
       this.pageNumberInput = pageIndex + 1;
       this.resetPan();
+      // Reset original dimensions for new page
+      this.originalImageWidth = 0;
+      this.originalImageHeight = 0;
     }
   }
 
@@ -412,7 +417,27 @@ export class PdfPreviewModalComponent implements OnInit, OnDestroy {
   }
 
   resetZoom(): void {
-    this.zoomLevel = 1;
+    this.fitToScreen();
+  }
+
+  fitToScreen(): void {
+    const previewContainer = document.querySelector('.pdf-preview-container') as HTMLElement;
+    if (!previewContainer || !this.originalImageWidth || !this.originalImageHeight) {
+      this.zoomLevel = 1;
+      this.resetPan();
+      return;
+    }
+
+    // Get container dimensions with some padding
+    const containerWidth = previewContainer.clientWidth - 48; // 24px padding on each side
+    const containerHeight = previewContainer.clientHeight - 48;
+
+    // Calculate zoom level to fit image in container
+    const scaleX = containerWidth / this.originalImageWidth;
+    const scaleY = containerHeight / this.originalImageHeight;
+
+    // Use the smaller scale to ensure entire image fits
+    this.zoomLevel = Math.min(scaleX, scaleY, 3); // Cap at max zoom of 3x
     this.resetPan();
   }
 
@@ -511,8 +536,16 @@ export class PdfPreviewModalComponent implements OnInit, OnDestroy {
   }
 
   // Event handlers
-  onImageLoad(): void {
-    // Image loaded successfully
+  onImageLoad(event?: Event): void {
+    // Capture original image dimensions for fit-to-screen calculation
+    if (event && event.target) {
+      const img = event.target as HTMLImageElement;
+      this.originalImageWidth = img.naturalWidth;
+      this.originalImageHeight = img.naturalHeight;
+
+      // Automatically fit to screen when image first loads
+      setTimeout(() => this.fitToScreen(), 100);
+    }
   }
 
   @HostListener('document:keydown', ['$event'])

@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, Inject, OnInit, OnDestroy, HostListener, ElementRef, ViewChild, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -11,6 +11,7 @@ import { takeUntil } from 'rxjs/operators';
 
 import { PdfUtilsService } from '../services/pdf-utils.service';
 import { PdfPreviewResult } from '../services/pdf-preview-dialog.service';
+import * as Hammer from 'hammerjs';
 
 export interface PdfPreviewDialogData {
   file: File;
@@ -199,7 +200,7 @@ export interface PdfPreviewDialogData {
       </div>
 
       <!-- PDF Content Area -->
-      <div class="flex-1 overflow-auto bg-gray-100 relative"
+      <div class="flex-1 overflow-auto bg-gray-100 relative pdf-content-area"
            #contentArea
            [class.cursor-grab]="zoomLevel > 1 && !isDragging"
            [class.cursor-grabbing]="zoomLevel > 1 && isDragging"
@@ -235,15 +236,15 @@ export interface PdfPreviewDialogData {
                [alt]="'PDF Preview - Page ' + (currentPageIndex + 1)"
                class="max-w-full max-h-full object-contain shadow-lg"
                [style.transform]="getTransform()"
-               [style.transition]="isDragging ? 'none' : 'transform 0.2s ease'"
+               [style.transition]="isDragging || isGesturing ? 'none' : 'transform 0.2s ease'"
                (dragstart)="$event.preventDefault()"
-               (load)="onImageLoad()">
+               (load)="onImageLoad($event)">
         </div>
 
         <!-- Zoom Indicator -->
-        <div *ngIf="zoomLevel > 1"
+        <div *ngIf="zoomLevel !== 1"
              class="absolute top-4 right-4 bg-black bg-opacity-75 text-white px-3 py-2 rounded text-sm">
-          {{ (zoomLevel * 100).toFixed(0) }}% - Drag to pan
+          {{ (zoomLevel * 100).toFixed(0) }}%<span *ngIf="zoomLevel > 1"> - Drag to pan</span>
         </div>
       </div>
 
@@ -289,9 +290,49 @@ export interface PdfPreviewDialogData {
       background: #cbd5e1;
       border-radius: 3px;
     }
+
+    /* HammerJS gesture support */
+    .pdf-content-area {
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      /* Ensure wheel events are captured */
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Allow scrolling when not zoomed */
+    .pdf-content-area.zoomed {
+      touch-action: none;
+      overflow: hidden;
+    }
+
+    /* Smooth zoom transitions */
+    .pdf-content-area img {
+      transition: transform 0.1s ease-out;
+      transform-origin: center center;
+      pointer-events: none;
+    }
+
+    /* Mobile-specific optimizations */
+    @media (max-width: 768px) {
+      .pdf-content-area {
+        -webkit-overflow-scrolling: touch;
+      }
+    }
   `]
 })
-export class PdfPreviewDialogComponent implements OnInit, OnDestroy {
+export class PdfPreviewDialogComponent implements OnInit, OnDestroy, AfterViewInit {
+
+  @ViewChild('contentArea', { static: true }) contentArea!: ElementRef;
+  // HammerJS gesture manager
+  private hammerManager!: HammerManager;
+  private initialZoomLevel = 1;
+  isGesturing = false;
 
   // Preview state
   previewPages: string[] = [];
@@ -307,6 +348,9 @@ export class PdfPreviewDialogComponent implements OnInit, OnDestroy {
   dragStartY = 0;
   panX = 0;
   panY = 0;
+  originalImageWidth = 0;
+  originalImageHeight = 0;
+
 
   // Mobile UI state
   showMobileActions = false;
@@ -316,17 +360,32 @@ export class PdfPreviewDialogComponent implements OnInit, OnDestroy {
   constructor(
     private dialogRef: MatDialogRef<PdfPreviewDialogComponent, PdfPreviewResult>,
     @Inject(MAT_DIALOG_DATA) public data: PdfPreviewDialogData,
-    private pdfUtils: PdfUtilsService
+    private pdfUtils: PdfUtilsService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.loadPreview();
   }
 
+  ngAfterViewInit(): void {
+    this.setupHammerGestures();
+  }
+
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
     this.cleanup();
+
+    // Clean up wheel event listener
+    if (this.contentArea?.nativeElement) {
+      this.contentArea.nativeElement.removeEventListener('wheel', this.handleContentAreaWheel);
+    }
+
+    // Clean up HammerJS
+    if (this.hammerManager) {
+      this.hammerManager.destroy();
+    }
   }
 
   async loadPreview(): Promise<void> {
@@ -375,6 +434,9 @@ export class PdfPreviewDialogComponent implements OnInit, OnDestroy {
       this.currentPageIndex = pageIndex;
       this.currentPagePreview = this.previewPages[pageIndex];
       this.resetPan();
+      // Reset original dimensions for new page
+      this.originalImageWidth = 0;
+      this.originalImageHeight = 0;
     }
   }
 
@@ -385,6 +447,8 @@ export class PdfPreviewDialogComponent implements OnInit, OnDestroy {
       if (this.zoomLevel <= 1) {
         this.resetPan();
       }
+      this.updateContentAreaClasses();
+      this.cdr.detectChanges(); // Force change detection
     }
   }
 
@@ -394,12 +458,38 @@ export class PdfPreviewDialogComponent implements OnInit, OnDestroy {
       if (this.zoomLevel <= 1) {
         this.resetPan();
       }
+      this.updateContentAreaClasses();
+      this.cdr.detectChanges(); // Force change detection
     }
   }
 
   resetZoom(): void {
-    this.zoomLevel = 1;
+    this.fitToScreen();
+  }
+
+  fitToScreen(): void {
+    const contentArea = document.querySelector('.pdf-content-area') as HTMLElement;
+    if (!contentArea || !this.originalImageWidth || !this.originalImageHeight) {
+      this.zoomLevel = 1;
+      this.resetPan();
+      this.updateContentAreaClasses();
+      this.cdr.detectChanges();
+      return;
+    }
+
+    // Get container dimensions with some padding
+    const containerWidth = contentArea.clientWidth - 32; // 16px padding on each side
+    const containerHeight = contentArea.clientHeight - 32;
+
+    // Calculate zoom level to fit image in container
+    const scaleX = containerWidth / this.originalImageWidth;
+    const scaleY = containerHeight / this.originalImageHeight;
+
+    // Use the smaller scale to ensure entire image fits
+    this.zoomLevel = Math.min(scaleX, scaleY, 3); // Cap at max zoom of 3x
     this.resetPan();
+    this.updateContentAreaClasses();
+    this.cdr.detectChanges(); // Force change detection
   }
 
   // Drag and pan methods
@@ -430,12 +520,109 @@ export class PdfPreviewDialogComponent implements OnInit, OnDestroy {
     this.isDragging = false;
   }
 
+  // Update content area classes based on zoom level
+  private updateContentAreaClasses(): void {
+    if (this.contentArea?.nativeElement) {
+      const element = this.contentArea.nativeElement;
+      if (this.zoomLevel > 1) {
+        element.classList.add('zoomed');
+      } else {
+        element.classList.remove('zoomed');
+      }
+    }
+  }
+
   getTransform(): string {
     if (this.zoomLevel > 1) {
       return `scale(${this.zoomLevel}) translate(${this.panX / this.zoomLevel}px, ${this.panY / this.zoomLevel}px)`;
     }
-    return 'scale(1)';
+    return `scale(${this.zoomLevel})`;
   }
+
+  // HammerJS gesture setup
+  private setupHammerGestures(): void {
+    if (!this.contentArea?.nativeElement) return;
+
+    // Create HammerJS manager
+    this.hammerManager = new Hammer.Manager(this.contentArea.nativeElement, {
+      recognizers: [
+        // Pinch gesture for zoom
+        [Hammer.Pinch, { enable: true }],
+        // Pan gesture for dragging (only when zoomed)
+        [Hammer.Pan, { enable: true, direction: Hammer.DIRECTION_ALL }],
+        // Tap gesture for double-tap zoom
+        [Hammer.Tap, { taps: 2, enable: true }],
+      ],
+    });
+
+    // Add wheel event listener specifically to the content area for trackpad zoom
+    this.contentArea.nativeElement.addEventListener('wheel', this.handleContentAreaWheel, { passive: false });
+
+    // Update content area classes based on zoom level
+    this.updateContentAreaClasses();
+
+    // Handle pinch to zoom
+    this.hammerManager.on('pinchstart', (event: HammerInput) => {
+      this.initialZoomLevel = this.zoomLevel;
+      this.isGesturing = true;
+    });
+
+    this.hammerManager.on('pinchmove', (event: HammerInput) => {
+      if (event.scale) {
+        event.preventDefault();
+        const newZoom = this.initialZoomLevel * event.scale;
+        this.zoomLevel = Math.max(0.25, Math.min(3, newZoom));
+        this.updateContentAreaClasses();
+        this.cdr.detectChanges();
+      }
+    });
+
+    // Handle pan for dragging when zoomed
+    this.hammerManager.on('panstart', (event: HammerInput) => {
+      // Only enable dragging when zoomed in
+      if (this.zoomLevel > 1) {
+        this.isDragging = true;
+        this.isGesturing = true;
+        this.dragStartX = event.center.x - this.panX;
+        this.dragStartY = event.center.y - this.panY;
+        event.preventDefault();
+      }
+    });
+
+    this.hammerManager.on('panmove', (event: HammerInput) => {
+      if (this.isDragging && this.zoomLevel > 1) {
+        event.preventDefault();
+        this.panX = event.center.x - this.dragStartX;
+        this.panY = event.center.y - this.dragStartY;
+        this.cdr.detectChanges();
+      }
+    });
+
+    this.hammerManager.on('panend', () => {
+      this.isDragging = false;
+      this.isGesturing = false;
+      this.updateContentAreaClasses();
+    });
+
+    // Add pinch end handler
+    this.hammerManager.on('pinchend', () => {
+      this.isGesturing = false;
+      this.updateContentAreaClasses();
+    });
+
+    // Handle double-tap zoom
+    this.hammerManager.on('tap', () => {
+      if (this.zoomLevel <= 1) {
+        this.zoomLevel = 2;
+        this.resetPan();
+      } else {
+        this.fitToScreen();
+      }
+      this.updateContentAreaClasses();
+      this.cdr.detectChanges();
+    });
+  }
+
 
   // Action methods
   async shareDocument(): Promise<void> {
@@ -489,8 +676,17 @@ export class PdfPreviewDialogComponent implements OnInit, OnDestroy {
     this.dialogRef.close({ action: 'close' });
   }
 
-  onImageLoad(): void {
-    // Image loaded successfully
+  onImageLoad(event?: Event): void {
+    // Capture original image dimensions for fit-to-screen calculation
+    if (event && event.target) {
+      const img = event.target as HTMLImageElement;
+      this.originalImageWidth = img.naturalWidth;
+      this.originalImageHeight = img.naturalHeight;
+
+      // Start at 100% zoom instead of auto-fitting to screen
+      this.zoomLevel = 1;
+      this.resetPan();
+    }
   }
 
   @HostListener('keydown', ['$event'])
@@ -524,14 +720,52 @@ export class PdfPreviewDialogComponent implements OnInit, OnDestroy {
     }
   }
 
-  @HostListener('wheel', ['$event'])
-  handleMouseWheel(event: WheelEvent): void {
+  // Handle wheel events specifically on the content area
+  private handleContentAreaWheel = (event: WheelEvent): void => {
+    // Handle trackpad pinch-to-zoom and mouse wheel zoom
     if (event.ctrlKey || event.metaKey) {
+      console.log('PDF Preview Zoom: Wheel event captured on content area', {
+        deltaY: event.deltaY,
+        ctrlKey: event.ctrlKey,
+        target: event.target
+      });
       event.preventDefault();
-      if (event.deltaY < 0) {
-        this.zoomIn();
+      event.stopPropagation();
+
+      // Enhanced trackpad detection
+      const absDeltaY = Math.abs(event.deltaY);
+      const absDeltaX = Math.abs(event.deltaX);
+
+      // Trackpad characteristics:
+      // - Usually has fractional deltaY values
+      // - Smaller delta values
+      // - More precise control
+      const isTrackpad = (
+        absDeltaY % 1 !== 0 || // Has decimal places
+        absDeltaY < 40 || // Small delta values
+        (absDeltaX > 0 && absDeltaY < 100) // Has horizontal component with small vertical
+      );
+
+      // Different sensitivity for trackpad vs mouse wheel
+      let zoomFactor: number;
+      if (isTrackpad) {
+        // More sensitive for trackpad pinch gestures (smooth zooming)
+        zoomFactor = event.deltaY > 0 ? -0.015 : 0.015;
       } else {
-        this.zoomOut();
+        // Less sensitive for mouse wheel (step-based zooming)
+        zoomFactor = event.deltaY > 0 ? -0.1 : 0.1;
+      }
+
+      let newZoom = this.zoomLevel + zoomFactor;
+      newZoom = Math.max(0.25, Math.min(3, newZoom));
+
+      if (newZoom !== this.zoomLevel) {
+        this.zoomLevel = newZoom;
+        if (this.zoomLevel <= 1) {
+          this.resetPan();
+        }
+        this.updateContentAreaClasses();
+        this.cdr.detectChanges();
       }
     }
   }
